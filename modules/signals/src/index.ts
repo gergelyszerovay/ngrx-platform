@@ -1,6 +1,6 @@
 export { DeepSignal } from './deep-signal';
 export { signalState, SignalState } from './signal-state';
-export { signalStore } from './signal-store';
+export { signalStore, MOCK_SIGNAL_STORE_CONFIG_TOKEN } from './signal-store';
 export { signalStoreFeature, type } from './signal-store-feature';
 export { SignalStoreFeature } from './signal-store-models';
 export {

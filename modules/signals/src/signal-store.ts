@@ -1,4 +1,11 @@
-import { DestroyRef, inject, Injectable, signal, Type } from '@angular/core';
+import {
+  DestroyRef,
+  inject,
+  Injectable,
+  InjectionToken,
+  signal,
+  Type,
+} from '@angular/core';
 import { STATE_SOURCE, StateSource, WritableStateSource } from './state-source';
 import {
   EmptyFeatureResult,
@@ -1313,6 +1320,9 @@ export function signalStore(
   @Injectable({ providedIn: config.providedIn || null })
   class SignalStore {
     constructor() {
+      const isMockSignalStore = !!inject(MOCK_SIGNAL_STORE_CONFIG_TOKEN, {
+        optional: true,
+      });
       const innerStore = features.reduce(
         (store, feature) => feature(store),
         getInitialInnerStore()
@@ -1321,7 +1331,7 @@ export function signalStore(
       const storeMembers = { ...stateSignals, ...computedSignals, ...methods };
 
       (this as any)[STATE_SOURCE] =
-        config.protectedState === false
+        config.protectedState === false || isMockSignalStore
           ? innerStore[STATE_SOURCE]
           : innerStore[STATE_SOURCE].asReadonly();
 
@@ -1329,14 +1339,21 @@ export function signalStore(
         (this as any)[key] = storeMembers[key];
       }
 
-      const { onInit, onDestroy } = hooks;
-
-      if (onInit) {
-        onInit();
+      if (isMockSignalStore) {
+        (this as any)[IS_MOCKED] = true;
       }
 
-      if (onDestroy) {
-        inject(DestroyRef).onDestroy(onDestroy);
+      // if the store is mocked, we don't want to execute the lifecycle hooks
+      if (isMockSignalStore) {
+        const { onInit, onDestroy } = hooks;
+
+        if (onInit) {
+          onInit();
+        }
+
+        if (onDestroy) {
+          inject(DestroyRef).onDestroy(onDestroy);
+        }
       }
     }
   }
@@ -1353,3 +1370,6 @@ export function getInitialInnerStore(): InnerSignalStore {
     hooks: {},
   };
 }
+
+export const MOCK_SIGNAL_STORE_CONFIG_TOKEN = new InjectionToken('');
+export const IS_MOCKED = Symbol('IS_MOCKED');
